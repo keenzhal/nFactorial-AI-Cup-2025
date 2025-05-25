@@ -9,3 +9,4 @@ scikit-learn
 werkzeug
 python-engineio
 python-socketio
+gunicorn
