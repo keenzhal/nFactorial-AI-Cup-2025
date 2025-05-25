@@ -1,0 +1,175 @@
+:root {
+            --primary: #2E7D32;
+            --primary-light: #4CAF50;
+            --dark: #121212;
+            --light: #f8f8f8;
+            --gray: #555;
+            --light-gray: #e0e0e0;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: var(--light);
+            color: var(--dark);
+            line-height: 1.8;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        header {
+            margin-bottom: 40px;
+            border-bottom: 2px solid var(--primary);
+            padding-bottom: 20px;
+        }
+
+        h1, h2, h3, h4 {
+            color: var(--primary);
+            margin: 30px 0 15px;
+            font-weight: 600;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            border-bottom: 2px solid var(--light-gray);
+            padding-bottom: 10px;
+        }
+        h2 {
+            font-size: 2rem;
+            border-bottom: 1px solid var(--light-gray);
+            padding-bottom: 8px;
+        }
+        h3 { font-size: 1.6rem; }
+        h4 { font-size: 1.3rem; color: var(--gray); }
+
+        p, li {
+            margin-bottom: 20px;
+            font-size: 1.1rem;
+            color: var(--dark);
+        }
+
+        ul, ol {
+            margin-bottom: 25px;
+            padding-left: 30px;
+        }
+
+        li {
+            margin-bottom: 10px;
+        }
+
+        .btn {
+            display: inline-block;
+            background: var(--primary);
+            color: white;
+            padding: 12px 25px;
+            text-decoration: none;
+            border-radius: 4px;
+            margin: 15px 0;
+            font-weight: 500;
+            transition: background 0.3s;
+        }
+
+        .btn:hover {
+            background: var(--primary-light);
+        }
+
+        .code-container {
+            margin: 30px 0;
+            border-radius: 6px;
+            overflow: hidden;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+
+        .code-header {
+            background: #1d1f21;
+            color: #f8f8f2;
+            padding: 8px 15px;
+            font-family: 'Consolas', monospace;
+            font-size: 0.9rem;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .code-block {
+            background: #282c34;
+            margin: 0;
+            padding: 20px;
+            overflow-x: auto;
+        }
+
+        pre {
+            margin: 0;
+            line-height: 1.5;
+        }
+
+        .note {
+            background: #e8f5e9;
+            border-left: 4px solid var(--primary);
+            padding: 20px;
+            margin: 25px 0;
+            border-radius: 0 4px 4px 0;
+        }
+
+        .note-title {
+            font-weight: 600;
+            color: var(--primary);
+            margin-bottom: 10px;
+        }
+
+        .feature-box {
+            background: white;
+            border: 1px solid var(--light-gray);
+            border-radius: 6px;
+            padding: 25px;
+            margin: 25px 0;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+
+        .feature-title {
+            color: var(--primary);
+            margin-bottom: 15px;
+            font-size: 1.3rem;
+        }
+
+        footer {
+            margin-top: 60px;
+            border-top: 2px solid var(--light-gray);
+            padding-top: 30px;
+            text-align: center;
+            color: var(--gray);
+            font-size: 0.9rem;
+        }
+
+        .method {
+            margin-bottom: 40px;
+        }
+
+        .method-signature {
+            font-family: 'Consolas', monospace;
+            background: var(--light-gray);
+            padding: 15px;
+            border-radius: 4px;
+            margin-bottom: 15px;
+            font-size: 1rem;
+        }
+
+        .param {
+            margin-bottom: 15px;
+        }
+
+        .param-name {
+            font-family: 'Consolas', monospace;
+            font-weight: 600;
+            color: var(--primary);
+        }
+
+        .return {
+            font-style: italic;
+            margin-top: 15px;
+        }

@@ -1,0 +1,90 @@
+.chat-container {
+  display: flex;
+  flex: 1;
+  overflow: hidden; /* Keep this to prevent overall page scroll */
+  position: relative;
+}
+
+.chat-area {
+  flex-grow: 1;
+  flex-shrink: 1;
+  /* flex-basis will be set by JS for desktop */
+  display: flex;
+  flex-direction: column;
+  background: var(--bg);
+  position: relative; /* For absolute positioning of elements inside if any */
+  border-right: 1px solid rgba(255, 255, 255, 0.05); /* Separator between chats */
+  overflow: hidden; /* Each chat area handles its own scroll */
+}
+
+.chat-area:last-child {
+  border-right: none;
+}
+
+/* Ensure chat-messages div is still scrollable within each chat-area */
+.chat-messages {
+  flex-grow: 1;
+  overflow-y: auto;
+  padding: 15px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  /* max-height removed as height will be determined by flex container */
+  height: 100%; /* Make it take available height within the flex column of chat-area */
+  scroll-behavior: smooth;
+}
+
+/* Chat Header */
+.chat-header {
+  display: flex;
+  align-items: center;
+  padding: 10px 15px;
+  background-color: rgba(0, 0, 0, 0.1);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.chat-title-text {
+  flex-grow: 1;
+  font-weight: 500;
+  color: var(--text-main);
+}
+
+.close-chat-btn {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 1.2em;
+  cursor: pointer;
+  padding: 5px;
+  margin-left: 10px;
+  line-height: 1;
+}
+
+.close-chat-btn:hover {
+  color: var(--accent);
+}
+
+/* Mobile styles */
+@media (max-width: 1023px) {
+  .chat-container {
+    /* On mobile, chat-container can revert to block or keep flex but manage children differently via JS */
+    display: block; /* Or keep flex and JS hides/shows .chat-area */
+  }
+  .chat-area {
+    position: absolute; /* This is current mobile logic, seems fine */
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: 100%; /* Ensure it takes full width */
+    flex-basis: auto !important; /* Override desktop flex-basis */
+    border-right: none; /* No border needed for single view */
+    z-index: 20;
+    transform: translateX(100%);
+    transition: transform 0.3s ease;
+  }
+
+  .chat-area.active {
+    transform: translateX(0);
+  }
+} 

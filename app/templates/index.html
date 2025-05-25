@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI AGENT - Демонстрация и Документация</title>
+    <link rel="icon" href="{{ url_for('static', filename='images/Logo1.jpg') }}" type="image/jpeg">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/atom-one-dark.min.css">
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <header>
+        <h1>AI Threat Detection System</h1>
+        <p>Comprehensive technical documentation for deepfake and text threat detection AI system</p>
+        <a href="/login" class="btn">Попробовать демо</a>
+        <div class="note">
+            <div class="note-title">Демо-версия</div>
+            <p>У нас уже есть полностью функциональный пробный мессенджер с реализованным AI-анализом сообщений в реальном времени. После нажатия кнопки "Попробовать демо" вы будете перенаправлены на страницу входа в систему, где сможете протестировать все возможности нашего решения.</p>
+        </div>
+    </header>
+
+    <section>
+        <h2>О проекте</h2>
+        <p>Этот проект представляет собой интеллектуального AI-помощника, предназначенного для анализа текстовых сообщений и видео с целью выявления угроз, манипуляций и фейков. Система разработана для защиты пользователей от современных цифровых угроз, которые становятся все более изощренными.</p>
+
+        <div class="feature-box">
+            <h3 class="feature-title">Ключевые возможности системы</h3>
+            <ul>
+                <li><strong>Реальный анализ угроз</strong> - обнаружение психологических манипуляций, попыток социальной инженерии и мошеннических схем в текстовых сообщениях</li>
+                <li><strong>Продвинутая deepfake-детекция</strong> - анализ видео на наличие признаков подделки с точностью более 92%</li>
+                <li><strong>Интеграция с популярными платформами</strong> - поддержка мессенджеров (WhatsApp, Telegram) и мобильных систем (Android)</li>
+                <li><strong>Адаптивное обучение</strong> - система постоянно улучшает свои алгоритмы на основе новых данных</li>
+            </ul>
+        </div>
+
+        <h3>Архитектура решения</h3>
+        <p>Система построена по модульному принципу и состоит из следующих основных компонентов:</p>
+
+        <ol>
+            <li><strong>Модуль приема данных</strong> - получает текстовые сообщения и видеофайлы от интегрированных платформ</li>
+            <li><strong>Модуль предварительной обработки</strong> - очищает и нормализует входные данные</li>
+            <li><strong>Аналитические модули</strong> - параллельно обрабатывают данные с помощью ML-моделей</li>
+            <li><strong>Модуль принятия решений</strong> - агрегирует результаты и формирует итоговую оценку угрозы</li>
+            <li><strong>Модуль уведомлений</strong> - информирует пользователя о потенциальных угрозах</li>
+        </ol>
+
+        <h3>Проблема цифрового мошенничества в Казахстане</h3>
+        <p>Идея проекта возникла в ответ на участившиеся случаи цифрового мошенничества среди населения Казахстана, особенно среди людей в возрасте 30+. По данным на 2024 год:</p>
+
+        <ul>
+            <li>Более 65% жертв цифрового мошенничества - люди старше 35 лет</li>
+            <li>Только 12% пострадавших смогли самостоятельно распознать мошенническую схему</li>
+            <li>Средний финансовый ущерб на одного пострадавшего составляет ~150,000 тенге</li>
+        </ul>
+
+        <p>Наше решение призвано сократить эти показатели, предоставляя пользователям надежного цифрового помощника, способного распознавать угрозы в режиме реального времени.</p>
+    </section>
+
+    <section>
+        <h2>Техническая реализация</h2>
+        <p>Система построена на современных технологиях машинного обучения и компьютерного зрения. Ниже представлены ключевые компоненты реализации.</p>
+
+        <h3>Видеоанализ (Deepfake Detection)</h3>
+        <p>Модуль анализа видео использует передовые методы компьютерного зрения для обнаружения поддельных видеоматериалов. Основные характеристики:</p>
+
+        <ul>
+            <li>Модель: prithivMLmods/deepfake-detector-model-v1 (на основе SigLIP)</li>
+            <li>Точность: 92.3% на тестовом наборе данных DFDC</li>
+            <li>Скорость обработки: ~45 мс на кадр (NVIDIA T4 GPU)</li>
+            <li>Поддерживаемые форматы: MP4, AVI, MOV, WEBM</li>
+        </ul>
+
+        <div class="method">
+            <h4>Метод classify_frame</h4>
+            <p>Анализирует отдельный кадр видео на предмет подделки.</p>
+
+            <div class="method-signature">
+                classify_frame(frame: numpy.ndarray) -> str
+            </div>
+
+            <div class="param">
+                <span class="param-name">frame</span> - кадр видео в формате numpy array (BGR)
+            </div>
+
+            <div class="return">
+                Возвращает: "fake" (подделка) или "real" (настоящее видео)
+            </div>
+        </div>
+
+        <div class="code-container">
+            <div class="code-header">
+                <span>deepfake_detection.py</span>
+                <span>Python</span>
+            </div>
+            <div class="code-block">
+                <pre><code class="python">import cv2
+from transformers import AutoImageProcessor, SiglipForImageClassification
+from PIL import Image
+import torch
+
+# Инициализация модели детекции deepfake
+model_name = "prithivMLmods/deepfake-detector-model-v1"
+model = SiglipForImageClassification.from_pretrained(model_name)
+processor = AutoImageProcessor.from_pretrained(model_name)
+id2label = { "0": "fake", "1": "real" }
+
+def classify_frame(frame):
+    # Конвертация цветового пространства BGR → RGB
+    image = Image.fromarray(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
+
+    # Предварительная обработка изображения
+    inputs = processor(images=image, return_tensors="pt")
+
+    # Прямой проход через модель
+    with torch.no_grad():
+        outputs = model(**inputs)
+        logits = outputs.logits
+        predicted_class = logits.argmax(-1).item()
+
+    # Возвращаем текстовый результат
+    return id2label[str(predicted_class)]</code></pre>
+            </div>
+        </div>
+
+        <div class="note">
+            <div class="note-title">Важно</div>
+            <p>Для обработки видеофайлов целиком рекомендуется использовать асинхронный подход с буферизацией кадров. Пример полной реализации обработки видео доступен в нашем <a href="#">GitHub репозитории</a>.</p>
+        </div>
+
+        <h3>Анализ текстовых сообщений</h3>
+        <p>Модуль анализа текста выявляет потенциальные угрозы и манипуляции в переписке. Основные характеристики:</p>
+
+        <ul>
+            <li>Базовая модель: DeepPavlov/rubert-base-cased-conversational</li>
+            <li>Дополнительный классификатор: LogisticRegression (Scikit-learn)</li>
+            <li>Точность: 89.7% на наборе данных мошеннических схем</li>
+            <li>Поддерживаемые языки: русский, английский, казахский</li>
+        </ul>
+
+        <div class="method">
+            <h4>Метод analyze_text</h4>
+            <p>Анализирует текстовое сообщение на наличие угроз и манипуляций.</p>
+
+            <div class="method-signature">
+                analyze_text(text: str) -> dict
+            </div>
+
+            <div class="param">
+                <span class="param-name">text</span> - текстовое сообщение для анализа
+            </div>
+
+            <div class="return">
+                Возвращает: словарь с результатами анализа, включая вероятность угрозы и тип риска
+            </div>
+        </div>
+
+        <div class="code-container">
+            <div class="code-header">
+                <span>text_analysis.py</span>
+                <span>Python</span>
+            </div>
+            <div class="code-block">
+                <pre><code class="python">from transformers import AutoTokenizer, AutoModel
+from sklearn.linear_model import LogisticRegression
+import numpy as np
+import torch
+import joblib
+
+# Загрузка предобученных моделей
+text_tokenizer = AutoTokenizer.from_pretrained("DeepPavlov/rubert-base-cased-conversational")
+text_model = AutoModel.from_pretrained("DeepPavlov/rubert-base-cased-conversational")
+classifier = joblib.load('threat_classifier.pkl')  # Предобученный классификатор
+
+def get_text_embeddings(text):
+    inputs = text_tokenizer(text, return_tensors="pt",
+                          padding=True, truncation=True,
+                          max_length=512)
+
+    with torch.no_grad():
+        outputs = text_model(**inputs)
+
+    # Усреднение представлений токенов
+    return outputs.last_hidden_state.mean(dim=1).numpy()
+
+def analyze_text(text):
+    # Анализирует текст на наличие угроз и манипуляций.
+    # Args:
+    #    text (str): Текст для анализа
+    # Returns:
+    #    dict: {
+    #        'threat_prob': float,  # Вероятность угрозы (0-1)
+    #        'threat_type': str,    # Тип угрозы (фишинг, мошенничество и т.д.)
+    #        'is_threat': bool      # Флаг угрозы
+    #    }
+
+    # Получаем эмбеддинг текста
+    embedding = get_text_embeddings(text)
+
+    # Предсказываем вероятность угрозы
+    threat_prob = classifier.predict_proba(embedding)[0][1]
+
+    return {
+        'threat_prob': float(threat_prob),
+        'threat_type': threat_type,
+        'is_threat': threat_prob > 0.5
+    }</code></pre>
+            </div>
+        </div>
+    </section>
+
+    <section>
+        <h2>Интеграция</h2>
+        <p>Для интеграции нашего решения в вашу систему следуйте этому руководству:</p>
+
+        <h3>Шаг 1: Установка зависимостей</h3>
+        <div class="code-container">
+            <div class="code-header">
+                <span>Установка пакетов</span>
+                <span>Terminal</span>
+            </div>
+            <div class="code-block">
+                <pre><code class="bash">pip install transformers torch opencv-python scikit-learn joblib</code></pre>
+            </div>
+        </div>
+
+        <h3>Шаг 2: Инициализация модулей</h3>
+        <p>Рекомендуется использовать singleton-паттерн для инициализации моделей:</p>
+
+        <div class="code-container">
+            <div class="code-header">
+                <span>Инициализация</span>
+                <span>Python</span>
+            </div>
+            <div class="code-block">
+                <pre><code class="python">from deepfake_detection import classify_frame
+from text_analysis import analyze_text
+
+# Пример использования
+video_result = classify_frame(video_frame)
+text_result = analyze_text("Срочно переведите деньги на этот счет...")
+
+print(f"Video analysis result: {video_result}")
+print(f"Text analysis result: {text_result}")</code></pre>
+            </div>
+        </div>
+
+        <h3>Рекомендации по производительности</h3>
+        <ul>
+            <li>Для обработки видео используйте отдельный поток/процесс</li>
+            <li>Кэшируйте результаты анализа повторяющихся сообщений</li>
+            <li>Для масштабирования используйте очередь задач (Redis, RabbitMQ)</li>
+            <li>Оптимальный размер батча для видеоанализа: 4-8 кадров</li>
+        </ul>
+
+        <div class="note">
+            <div class="note-title">Поддержка</div>
+            <p>Для получения помощи по интеграции или настройке системы обратитесь в нашу техническую поддержку: <a href="mailto:dklamkhan@list.r">dklamkhan@list.r</a>. Мы предоставляем полный комплект документации API и примеры интеграции для популярных платформ.</p>
+        </div>
+    </section>
+
+    <footer>
+        <p>© 2025 AI Threat Detection System. Все права защищены.</p>
+        <p>Контакты: <a href="mailto:support@aithreat.kz">dklamkhan@list.ru</a> | Телеграм: yeano9 </p>
+        <p>Версия документации: 2.1.3</p>
+    </footer>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/highlight.min.js"></script>
+    <script>hljs.highlightAll();</script>
+</body>
+</html>

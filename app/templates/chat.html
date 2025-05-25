@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI AGENT - Чат</title>
+  <link rel="icon" href="{{ url_for('static', filename='images/Logo1.jpg') }}" type="image/jpeg">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/styleChat.css') }}">
+</head>
+<body>
+  <div id="app">
+    <header>
+      <div class="header-title">AI AGENT CHAT</div>
+      <div class="header-user">
+        <div class="user-avatar">{{ username|first|upper }}</div>
+        <span>{{ username }}</span>
+      </div>
+    </header>
+
+    <div id="users-container">
+      <div class="users-list" id="users"></div>
+    </div>
+
+    <div class="chat-container" id="chatContainer">
+      <!-- Chat Area Template (will be cloned by JS) -->
+      <div class="chat-area" id="chatAreaTemplate" style="display: none;">
+        <div class="chat-header">
+          <div class="back-button mobile-only"> <!-- Remains for mobile logic -->
+            <i class="fas fa-arrow-left"></i>
+          </div>
+          <div class="chat-title-text">Chat with User</div>
+          <button class="close-chat-btn" title="Close Chat"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="chat-messages"></div>
+        <div class="input-area">
+          <input type="text" class="message-input" placeholder="Введите сообщение..." autocomplete="off" />
+          <div class="file-upload">
+            <input type="file" class="video-input" accept="video/*" style="display: none;">
+            <label class="video-upload-label" title="Отправить видео"><i class="fas fa-video"></i></label>
+          </div>
+          <button class="send-btn"><i class="fas fa-paper-plane"></i></button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.4.1/socket.io.min.js"></script>
+  <script>
+    const socket = io();
+    const currentUsername = "{{ username }}";
+    const MAX_CHATS = 6;
+    let activeChatWindows = []; // Stores { userId: string, element: HTMLElement, messagesContainer: HTMLElement }
+    let unreadMessages = {};
+
+    // DOM elements
+    const usersListElement = document.getElementById('users');
+    const chatContainerElement = document.getElementById('chatContainer');
+    const chatAreaTemplate = document.getElementById('chatAreaTemplate');
+
+    socket.on('connect', () => {
+      socket.emit('join', { username: currentUsername });
+    });
+
+    socket.on('connect_error', (error) => {
+      console.error('Connection error:', error);
+    });
+
+    socket.on('user_list', data => {
+      usersListElement.innerHTML = '';
+      data.users.forEach(user => {
+        if (user === currentUsername) return;
+        const userItem = createUserListItem(user);
+        usersListElement.appendChild(userItem);
+      });
+    });
+    
+    function createUserListItem(user) {
+        const userItem = document.createElement('div');
+        userItem.className = 'user-item';
+        userItem.dataset.userId = user;
+        userItem.innerHTML = `
+          <div class="user-avatar">${escapeHtml(user[0].toUpperCase())}</div>
+          <div class="user-name">${escapeHtml(user)}</div>
+          <div class="chat-badge" style="display: ${unreadMessages[user] ? 'flex' : 'none'}";>${unreadMessages[user] || ''}</div>
+        `;
+        userItem.onclick = () => handleUserItemClick(user);
+        return userItem;
+    }
+
+    function handleUserItemClick(userId) {
+        if (isMobileView()) {
+            openChatMobile(userId);
+        } else {
+            openChatDesktop(userId);
+        }
+        if (unreadMessages[userId]) {
+            unreadMessages[userId] = 0;
+            updateUserBadge(userId);
+        }
+    }
+
+    function isMobileView() {
+      return window.innerWidth < 1024;
+    }
+
+    function openChatMobile(userId) {
+        chatContainerElement.querySelectorAll('.chat-area.active').forEach(activeChat => {
+            activeChat.classList.remove('active');
+        });
+        
+        let chatWindow = findChatWindowByUserId(userId);
+        if (!chatWindow) {
+            chatWindow = cloneChatArea(userId);
+            initializeChatWindow(chatWindow, userId);
+            chatContainerElement.appendChild(chatWindow);
+        } else {
+             chatWindow.style.display = ''; // Ensure it's visible if previously hidden by desktop logic
+        }
+        
+        chatWindow.classList.add('active');
+        if (!activeChatWindows.some(cw => cw.userId === userId)) {
+             activeChatWindows.push({ userId: userId, element: chatWindow, messagesContainer: chatWindow.querySelector('.chat-messages') });
+        }
+        loadInitialMessages(userId, chatWindow.querySelector('.chat-messages'));
+        updateChatLayout();
+    }
+
+    function openChatDesktop(userId) {
+      if (activeChatWindows.some(cw => cw.userId === userId)) {
+        console.log(`Chat with ${userId} is already open.`);
+        return;
+      }
+
+      if (activeChatWindows.length >= MAX_CHATS) {
+        alert(`Maximum of ${MAX_CHATS} chats are open. Please close one to open a new chat.`);
+        return;
+      }
+
+      const newChatWindow = cloneChatArea(userId);
+      const messagesContainer = newChatWindow.querySelector('.chat-messages');
+      initializeChatWindow(newChatWindow, userId, messagesContainer);
+      chatContainerElement.appendChild(newChatWindow);
+      activeChatWindows.push({ userId: userId, element: newChatWindow, messagesContainer: messagesContainer });
+      
+      loadInitialMessages(userId, messagesContainer);
+      updateChatLayout();
+    }
+    
+    function cloneChatArea(userId) {
+        const newChatWindow = chatAreaTemplate.cloneNode(true);
+        newChatWindow.id = `chat-window-${userId}`;
+        newChatWindow.dataset.chatUser = userId;
+        newChatWindow.style.display = 'flex'; // Use flex for chat-area
+        
+        const messageInput = newChatWindow.querySelector('.message-input');
+        const videoInput = newChatWindow.querySelector('.video-input');
+        const videoLabel = newChatWindow.querySelector('.video-upload-label');
+        
+        messageInput.id = `messageInput-${userId}`;
+        videoInput.id = `videoInput-${userId}`;
+        videoLabel.htmlFor = `videoInput-${userId}`;
+        return newChatWindow;
+    }
+
+    function initializeChatWindow(chatElement, userId, messagesContainer) {
+      const messageInput = chatElement.querySelector('.message-input');
+      const sendBtn = chatElement.querySelector('.send-btn');
+      const videoInput = chatElement.querySelector('.video-input');
+      const chatTitle = chatElement.querySelector('.chat-title-text');
+      const closeBtn = chatElement.querySelector('.close-chat-btn');
+      const backBtnMobile = chatElement.querySelector('.back-button.mobile-only');
+
+      chatTitle.textContent = `Chat with ${escapeHtml(userId)}`;
+      messagesContainer.innerHTML = ''; 
+
+      sendBtn.onclick = () => {
+        const msg = messageInput.value.trim();
+        if (!msg) return;
+        socket.emit('private_message', { to: userId, message: msg });
+        appendMessageToContainer(messagesContainer, msg, true, currentUsername);
+        messageInput.value = '';
+      };
+      messageInput.onkeypress = (e) => {
+        if (e.key === 'Enter') sendBtn.onclick();
+      };
+      videoInput.onchange = (e) => {
+        if (e.target.files.length > 0) {
+          handleVideoUpload(userId, e.target.files[0], messagesContainer);
+        }
+      };
+      closeBtn.onclick = () => closeChat(userId);
+      
+      if (backBtnMobile) {
+        backBtnMobile.onclick = () => {
+            chatElement.classList.remove('active');
+            updateChatLayout(); 
+        };
+      }
+    }
+
+    function closeChat(userId) {
+      const chatIndex = activeChatWindows.findIndex(cw => cw.userId === userId);
+      if (chatIndex > -1) {
+        activeChatWindows[chatIndex].element.remove();
+        activeChatWindows.splice(chatIndex, 1);
+        updateChatLayout();
+      }
+    }
+
+    function updateChatLayout() {
+      if (isMobileView()) {
+        let activeMobileChatExists = false;
+        chatContainerElement.querySelectorAll('.chat-area:not(#chatAreaTemplate)').forEach(chatWin => {
+            if (chatWin.classList.contains('active')) {
+                chatWin.style.transform = 'translateX(0)';
+                chatWin.style.display = 'flex';
+                activeMobileChatExists = true;
+            } else {
+                chatWin.style.transform = 'translateX(100%)'; 
+                // Potentially hide with display:none after transition if preferred
+            }
+        });
+      } else { // Desktop view
+        chatContainerElement.querySelectorAll('.chat-area:not(#chatAreaTemplate)').forEach(chatWin => {
+            chatWin.classList.remove('active'); // Remove mobile active class
+            chatWin.style.transform = ''; // Clear mobile transform
+        });
+
+        const chatCount = activeChatWindows.length;
+        if (chatCount === 0) {
+            chatContainerElement.style.display = 'flex'; // Ensure container is flex for placeholder or empty state
+            return;
+        }
+        chatContainerElement.style.display = 'flex';
+        const widthPercentage = 100 / chatCount;
+        activeChatWindows.forEach(cw => {
+          cw.element.style.flexBasis = `${widthPercentage}%`;
+          cw.element.style.display = 'flex';
+        });
+      }
+    }
+    
+    function findChatWindowByUserId(userId) {
+        const chatInstance = activeChatWindows.find(cw => cw.userId === userId);
+        return chatInstance ? chatInstance.element : null;
+    }
+    
+    function findOrCreateMessagesContainer(userId, isSystemMessageForCurrentUser = false) {
+        let chatInfo = activeChatWindows.find(cw => cw.userId === userId);
+        let chatWindow = chatInfo ? chatInfo.element : null;
+        let messagesContainer = chatInfo ? chatInfo.messagesContainer : null;
+
+        if (!chatWindow && userId !== currentUsername && !isSystemMessageForCurrentUser) {
+            if (isMobileView()) {
+                unreadMessages[userId] = (unreadMessages[userId] || 0) + 1;
+                updateUserBadge(userId);
+                return null;
+            } else if (activeChatWindows.length < MAX_CHATS) {
+                openChatDesktop(userId); // This will create and init the window
+                chatInfo = activeChatWindows.find(cw => cw.userId === userId); // Get the newly created chat
+                return chatInfo ? chatInfo.messagesContainer : null;
+            } else {
+                unreadMessages[userId] = (unreadMessages[userId] || 0) + 1;
+                updateUserBadge(userId);
+                return null;
+            }
+        } else if (!chatWindow && isSystemMessageForCurrentUser) {
+             // For system messages to current user if no specific chat is open
+            if (activeChatWindows.length > 0) {
+                 return activeChatWindows[0].messagesContainer; // Send to the first open chat
+            } else if (!isMobileView()) {
+                 openChatDesktop("AI AGENT System"); // Open a general system chat if none exist on desktop
+                 chatInfo = activeChatWindows.find(cw => cw.userId === "AI AGENT System");
+                 return chatInfo ? chatInfo.messagesContainer : null;
+            } else {
+                 alert("System Message: " + (messageText || "System event occurred.")); // Fallback for mobile
+                 return null;
+            }
+        }
+        return messagesContainer;
+    }
+
+    socket.on('private_message', data => {
+      const fromUser = data.from;
+      const messageText = data.message;
+      const isSystem = data.system;
+      const forCurrentUser = data.self || (isSystem && (!data.to || data.to === currentUsername));
+      
+      const targetUserId = isSystem ? (data.to || currentUsername) : (forCurrentUser ? currentUsername : fromUser);
+
+      const messagesContainer = findOrCreateMessagesContainer(targetUserId, isSystem && forCurrentUser);
+
+      if (messagesContainer) {
+        if (isSystem) {
+          appendSystemMessageToContainer(messagesContainer, messageText);
+        } else {
+          appendMessageToContainer(messagesContainer, messageText, fromUser === currentUsername, fromUser);
+          if (fromUser !== currentUsername && (document.hidden || !findChatWindowByUserId(fromUser)?.classList.contains('active'))) {
+             if (!isMobileView() || !findChatWindowByUserId(fromUser)) { // only badge if not mobile active or no window
+                unreadMessages[fromUser] = (unreadMessages[fromUser] || 0) + 1;
+                updateUserBadge(fromUser);
+             }
+          }
+        }
+      } else if (!isSystem && fromUser !== currentUsername) { 
+        // If container wasn't found/created (e.g. mobile and not auto-opening)
+        unreadMessages[fromUser] = (unreadMessages[fromUser] || 0) + 1;
+        updateUserBadge(fromUser);
+      }
+    });
+
+    function appendMessageToContainer(container, text, isSelf, senderName) {
+      const msgElem = document.createElement('div');
+      msgElem.className = `message ${isSelf ? 'self' : 'other'}`;
+      msgElem.textContent = escapeHtml(text);
+      container.appendChild(msgElem);
+      container.scrollTo({ top: container.scrollHeight, behavior: 'smooth' });
+    }
+
+    function appendSystemMessageToContainer(container, text) {
+      const sysElem = document.createElement('div');
+      sysElem.className = 'system-message';
+      sysElem.textContent = escapeHtml(text);
+      container.appendChild(sysElem);
+      container.scrollTo({ top: container.scrollHeight, behavior: 'smooth' });
+    }
+
+    function handleVideoUpload(chatUser, file, messagesContainer) {
+      if (!file.type.match('video.*')) {
+        appendSystemMessageToContainer(messagesContainer, 'Пожалуйста, выберите видео файл.');
+        return;
+      }
+      const loadingMsgDiv = document.createElement('div');
+      loadingMsgDiv.className = 'system-message loading-indicator';
+      loadingMsgDiv.textContent = 'Анализируем видео...';
+      messagesContainer.appendChild(loadingMsgDiv);
+      messagesContainer.scrollTo({ top: messagesContainer.scrollHeight, behavior: 'smooth' });
+
+      const formData = new FormData();
+      formData.append('file', file);
+
+      fetch("{{ url_for('upload_file_route') }}", { method: 'POST', body: formData })
+        .then(response => {
+            if (!response.ok) throw new Error(`Server error: ${response.status}`);
+            return response.json();
+        })
+        .then(data => {
+          loadingMsgDiv.remove();
+          if (data.error) {
+            appendSystemMessageToContainer(messagesContainer, data.error);
+            return;
+          }
+          const videoPreviewUrl = URL.createObjectURL(file);
+          appendVideoMessageToContainer(messagesContainer, currentUsername, videoPreviewUrl, file.type, data, true);
+
+          if (chatUser) {
+            socket.emit('video_message', {
+              to: chatUser,
+              video_url: data.video_url,
+              is_fake: data.result.percent_fake > 50,
+              percent_fake: data.result.percent_fake,
+              verdict: data.result.verdict
+            });
+          }
+        })
+        .catch(error => {
+          loadingMsgDiv.remove();
+          appendSystemMessageToContainer(messagesContainer, `Ошибка при загрузке видео: ${error.message}`);
+          console.error('Upload Error:', error);
+        });
+    }
+    
+    socket.on('video_message', data => {
+        const fromUser = data.from;
+        const messagesContainer = findOrCreateMessagesContainer(fromUser);
+
+        if (messagesContainer) {
+            appendVideoMessageToContainer(messagesContainer, fromUser, data.video_url, "video/mp4", data, false);
+             if (fromUser !== currentUsername && (document.hidden || !findChatWindowByUserId(fromUser)?.classList.contains('active'))) {
+                if (!isMobileView() || !findChatWindowByUserId(fromUser)) {
+                    unreadMessages[fromUser] = (unreadMessages[fromUser] || 0) + 1;
+                    updateUserBadge(fromUser);
+                }
+            }
+        } else if (fromUser !== currentUsername) {
+             unreadMessages[fromUser] = (unreadMessages[fromUser] || 0) + 1;
+             updateUserBadge(fromUser);
+        }
+    });
+
+    function appendVideoMessageToContainer(container, sender, videoSrc, videoType, analysisResult, isSelf) {
+        const videoMsgElem = document.createElement('div');
+        videoMsgElem.className = `message ${isSelf ? 'self' : 'other'}`;
+        
+        let resultHTML = '';
+        if (analysisResult && analysisResult.result) { 
+             resultHTML = `
+                <div class="video-result ${analysisResult.result.percent_fake > 50 ? 'warning' : ''}">
+                    ${escapeHtml(analysisResult.result.verdict)} (${escapeHtml(String(analysisResult.result.percent_fake))}% вероятность подделки)
+                </div>`;
+        } else if (analysisResult && typeof analysisResult.is_fake !== 'undefined') { 
+             if (analysisResult.is_fake) {
+                 resultHTML = `<div class="video-result warning">${escapeHtml(analysisResult.verdict)}</div>`;
+             }
+        }
+
+        videoMsgElem.innerHTML = `
+            <div>${isSelf ? 'Вы' : escapeHtml(sender)} отправил(а) видео:</div>
+            <video controls width="250" preload="metadata">
+                <source src="${escapeHtml(videoSrc)}" type="${escapeHtml(videoType)}">
+                Ваш браузер не поддерживает это видео.
+            </video>
+            ${resultHTML}
+        `;
+        container.appendChild(videoMsgElem);
+        container.scrollTo({ top: container.scrollHeight, behavior: 'smooth' });
+    }
+    
+    function updateUserBadge(userId) {
+      const userItems = usersListElement.querySelectorAll(`.user-item[data-user-id="${userId}"]`);
+      userItems.forEach(item => {
+        let badge = item.querySelector('.chat-badge');
+        if (unreadMessages[userId] && unreadMessages[userId] > 0) {
+          if (!badge) {
+            badge = document.createElement('div');
+            badge.className = 'chat-badge';
+            item.appendChild(badge);
+          }
+          badge.textContent = unreadMessages[userId];
+          badge.style.display = 'flex';
+        } else if (badge) {
+          badge.style.display = 'none';
+        }
+      });
+    }
+
+    function escapeHtml(unsafe) {
+      if (typeof unsafe !== 'string') {
+        console.warn('escapeHtml called with non-string value:', unsafe);
+        return String(unsafe); // Convert to string to prevent errors
+      }
+      return unsafe
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+    }
+
+    async function loadInitialMessages(userId, container) {
+      // console.log(`Loading initial messages for ${userId} into specified container.`);
+      // appendSystemMessageToContainer(container, `Чат с ${userId} начат.`);
+    }
+    
+    window.addEventListener('resize', updateChatLayout);
+    document.addEventListener('DOMContentLoaded', () => {
+        updateChatLayout(); // Initial layout update after DOM is ready
+    });
+
+  </script>
+</body>
+</html>
