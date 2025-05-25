@@ -1,0 +1,11 @@
+flask
+flask-socketio
+numpy
+torch
+opencv-python
+Pillow
+transformers
+scikit-learn
+werkzeug
+python-engineio
+python-socketio
