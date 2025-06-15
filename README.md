@@ -266,7 +266,7 @@ def analyze_video(video_path, max_frames=30, step=10, threshold=0.6):
     return percent_suspicious
 ```
 
-### 5. Генерация ответа от AI Agent
+### 5. Генерация ответа (NO AI)
 
 ```python
 def generate_ai_response(message, sender, threat_score):
